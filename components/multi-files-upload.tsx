@@ -5,23 +5,28 @@ import { Download, Upload } from 'lucide-react';
 import { PresignedUrlResponse } from '@/types';
 import { fileDownload } from '@/lib/file-utils';
 
-export default function SimpleUpload() {
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+export default function MultiFilesUpload() {
+  const [fileList, setFileList] = useState<FileList>();
+  const [previewUrlList, setPreviewUrlList] = useState<string[]>();
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const formData = new FormData(e.currentTarget);
-    const file = formData.get('file') as File;
+    const formFileList = formData.getAll('file') as File[];
 
-    if (!file) {
+    if (!formFileList.length) {
       alert('Please select a file');
       return;
     }
 
     setLoading(true);
+
+    const reqList = formFileList.map((el) => ({
+      mimeType: el.type,
+      fileSizeL: el.size,
+    }));
 
     try {
       const res = await fetch('/api/presigned-url', {
@@ -30,12 +35,7 @@ export default function SimpleUpload() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          files: [
-            {
-              mimeType: file?.type || '',
-              fileSize: file?.size || 0,
-            },
-          ],
+          files: reqList,
         }),
       });
 
@@ -47,21 +47,21 @@ export default function SimpleUpload() {
       }
 
       await Promise.all(
-        resJson.rows.map(async (el) => {
+        resJson.rows.map(async (el, idx) => {
           if (!el.presignedUrl) {
             throw new Error('No presigned url found for upload');
           }
           return fetch(el.presignedUrl, {
             method: 'PUT',
-            body: file,
+            body: formFileList[idx],
             headers: {
-              'Content-Type': file.type,
+              'Content-Type': formFileList[idx].type,
             },
           });
         })
       );
 
-      setPreviewUrl(resJson.rows[0].fileUrl);
+      setPreviewUrlList(resJson.rows.map((el) => el.fileUrl));
     } catch (error: any) {
       console.error(error);
       console.log(error.message);
@@ -71,20 +71,20 @@ export default function SimpleUpload() {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFile(file);
+    const files = e.target.files;
+    if (files) {
+      setFileList(files);
     }
   };
 
-  const onDownload = () => {
-    if (previewUrl) {
-      fileDownload(previewUrl);
+  const onDownload = (url: string) => {
+    if (url) {
+      fileDownload(url);
     }
   };
 
   return (
-    <div className='flex flex-col gap-5 w-full min-h-screen items-center py-5'>
+    <div className='flex flex-col gap-5 w-full items-center py-5'>
       <form
         onSubmit={handleSubmit}
         className='flex flex-col gap-3 border border-sky-500 rounded-lg p-5'
@@ -100,24 +100,14 @@ export default function SimpleUpload() {
               type='file'
               name='file' // required for form submission
               id='file' // required for <label>
-              multiple={false} // (1)true for multiple files (2)false for single file
-              onChange={handleFileChange}
+              multiple // (1)true for multiple files (2)false for single file
               className='hidden'
+              onChange={handleFileChange}
               accept='image/*' // only allow image files
             />
           </label>
-          {file && (
-            <>
-              {file.type.startsWith('image') && (
-                <div className='size-[150px] border rounded border-sky-500 flex justify-center items-center'>
-                  <img
-                    src={URL.createObjectURL(file)}
-                    alt='preview'
-                    className='object-cover max-w-full max-h-full'
-                  />
-                </div>
-              )}
-            </>
+          {fileList && fileList?.length > 0 && (
+            <div>{fileList.length} items</div>
           )}
         </div>
         <button type='submit' className='py-2 px-3 bg-sky-500 rounded'>
@@ -125,24 +115,26 @@ export default function SimpleUpload() {
         </button>
       </form>
       <div>upload result:</div>
-      <div className='relative size-[200px] border rounded border-teal-500 flex justify-center items-center'>
-        {previewUrl && (
-          <>
+      {previewUrlList &&
+        previewUrlList.map((url) => (
+          <div
+            key={url}
+            className='relative size-[200px] border rounded border-teal-500 flex justify-center items-center'
+          >
             <button
               type='button'
-              onClick={onDownload}
+              onClick={() => onDownload(url)}
               className='absolute top-2 right-2 size-6 rounded bg-white/20 backdrop-blur-md flex justify-center items-center'
             >
               <Download className='size-4' />
             </button>
             <img
-              src={previewUrl}
+              src={url}
               alt='preview'
               className='object-cover max-w-full max-h-full'
             />
-          </>
-        )}
-      </div>
+          </div>
+        ))}
     </div>
   );
 }

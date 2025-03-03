@@ -14,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang='en' className='dark' suppressHydrationWarning>
-      <body className='min-h-dvh w-full max-w-5xl flex flex-col mx-auto items-center'>
+      <body className='flex flex-col items-center'>
         <Header />
         {children}
       </body>

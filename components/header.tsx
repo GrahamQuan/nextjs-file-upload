@@ -7,11 +7,15 @@ import { usePathname } from 'next/navigation';
 const links = [
   {
     href: '/',
-    label: 'Simple Upload',
+    label: 'Single File Upload',
+  },
+  {
+    href: '/multi-files-upload',
+    label: 'multi files upload',
   },
   {
     href: '/multipart-file-upload',
-    label: 'Multi Upload',
+    label: 'multipart large file Upload',
   },
 ];
 
@@ -19,14 +23,14 @@ export default function Header() {
   const pathname = usePathname();
 
   return (
-    <div className='flex items-center gap-5 text-sky-500'>
+    <div className='flex items-center gap-3 text-sky-500'>
       {links.map((link) => (
         <Link
           key={link.href}
           href={link.href}
           className={cn(
-            'text-2xl font-bold',
-            pathname === link.href && 'underline'
+            'text-lg font-bold text-black bg-white py-1 px-2 rounded',
+            pathname === link.href ? 'bg-sky-500 text-white' : 'opacity-60'
           )}
         >
           {link.label}

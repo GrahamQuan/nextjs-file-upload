@@ -1,5 +1,10 @@
-import SimpleUpload from '@/components/simple-upload';
+import SingleFileUpload from '@/components/single-file-upload';
 
 export default function Home() {
-  return <SimpleUpload />;
+  return (
+    <>
+      <h2 className='text-4xl font-bold'>upload single file</h2>
+      <SingleFileUpload />
+    </>
+  );
 }
