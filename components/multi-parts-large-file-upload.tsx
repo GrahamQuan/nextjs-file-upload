@@ -2,10 +2,13 @@
 
 import { useState } from 'react';
 import { Download, Upload } from 'lucide-react';
-import { PresignedUrlResponse } from '@/types';
-import { fileDownload } from '@/lib/file-utils';
+import {
+  CompletedMultiPartUploadRequestBody,
+  MultiPartsPresignedUrlResponse,
+} from '@/types';
+import { fileDownload, sliceFileToMultipart } from '@/lib/file-utils';
 
-export default function SingleFileUpload() {
+export default function MultipartsLargeFileUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -24,44 +27,97 @@ export default function SingleFileUpload() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/presigned-url', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          files: [
-            {
-              mimeType: file?.type || '',
-              fileSize: file?.size || 0,
-            },
-          ],
-        }),
-      });
+      // (1) create presigned url
+      const presignedUrlResponse = await fetch(
+        '/api/multi-parts-presigned-url',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            files: [
+              {
+                mimeType: file?.type || '',
+                fileSize: file?.size || 0,
+              },
+            ],
+          }),
+        }
+      );
 
-      const resJson = (await res.json()) as PresignedUrlResponse;
+      const presignedUrlJson =
+        (await presignedUrlResponse.json()) as MultiPartsPresignedUrlResponse;
 
-      if (resJson.code !== 200 || !resJson.data) {
-        console.log('error msg', resJson);
+      if (presignedUrlJson.code !== 200 || !presignedUrlJson.data) {
+        console.log('error msg', presignedUrlJson);
         return;
       }
 
-      await Promise.all(
-        resJson.data.map(async (el) => {
+      const { key, uploadId, presignedUrlList } = presignedUrlJson.data;
+
+      const slicedFileList = sliceFileToMultipart(formFile);
+
+      // (2) upload sliced file
+      const uploadResponse = await Promise.all(
+        presignedUrlList.map(async (el, idx) => {
           if (!el.presignedUrl) {
             throw new Error('No presigned url found for upload');
           }
-          return fetch(el.presignedUrl, {
+
+          const sliceResponse = await fetch(el.presignedUrl, {
             method: 'PUT',
-            body: formFile,
+            body: slicedFileList[idx],
             headers: {
               'Content-Type': formFile.type,
             },
           });
+
+          if (!sliceResponse.ok) {
+            console.error('Upload failed with status:', sliceResponse.status);
+            throw new Error(`Upload failed: ${sliceResponse.status}`);
+          }
+
+          const etag =
+            sliceResponse.headers.get('Etag') ||
+            sliceResponse.headers.get('etag') ||
+            sliceResponse.headers.get('ETag') ||
+            '';
+
+          console.log('Part uploaded with ETag:', etag);
+
+          return {
+            etag,
+            partNumber: el.partNumber,
+          };
         })
       );
 
-      setPreviewUrl(resJson.data[0].fileUrl);
+      if (!uploadResponse.length) {
+        console.log('upload failed');
+        return;
+      }
+
+      const params: CompletedMultiPartUploadRequestBody = {
+        key,
+        uploadId,
+        parts: uploadResponse.map((el) => ({
+          partNumber: el.partNumber,
+          etag: el.etag,
+        })),
+      };
+
+      // (3) tell server all slices is uploaded and get the file url
+      const completedRes = await fetch('/api/completed-multi-part-upload', {
+        method: 'POST',
+        body: JSON.stringify(params),
+      });
+
+      const completedJson = (await completedRes.json()) as {
+        fileUrl: string;
+      };
+
+      setPreviewUrl(completedJson.fileUrl);
     } catch (error: any) {
       console.error(error);
       console.log(error.message);

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Download, Upload } from 'lucide-react';
-import { PresignedUrlResponse } from '@/types';
+import { FileInfo, PresignedUrlResponse } from '@/types';
 import { fileDownload } from '@/lib/file-utils';
 
 export default function MultiFilesUpload() {
@@ -25,8 +25,8 @@ export default function MultiFilesUpload() {
 
     const reqList = formFileList.map((el) => ({
       mimeType: el.type,
-      fileSizeL: el.size,
-    }));
+      fileSize: el.size,
+    })) satisfies FileInfo[];
 
     try {
       const res = await fetch('/api/presigned-url', {
@@ -41,13 +41,13 @@ export default function MultiFilesUpload() {
 
       const resJson = (await res.json()) as PresignedUrlResponse;
 
-      if (resJson.code !== 200 || !resJson.rows) {
+      if (resJson.code !== 200 || !resJson.data) {
         console.log('error msg', resJson);
         return;
       }
 
       await Promise.all(
-        resJson.rows.map(async (el, idx) => {
+        resJson.data.map(async (el, idx) => {
           if (!el.presignedUrl) {
             throw new Error('No presigned url found for upload');
           }
@@ -61,7 +61,7 @@ export default function MultiFilesUpload() {
         })
       );
 
-      setPreviewUrlList(resJson.rows.map((el) => el.fileUrl));
+      setPreviewUrlList(resJson.data.map((el) => el.fileUrl));
     } catch (error: any) {
       console.error(error);
       console.log(error.message);

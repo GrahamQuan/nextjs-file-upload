@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
+  MultiPartsPresignedUrlResponse,
   PresignedUrlRequestBody,
-  PresignedUrlResponse,
   ResponseData,
 } from '@/types';
-import { createPresignedUrl } from '@/lib/server-only';
+import { createMultiPartsPresignedUrl } from '@/lib/server-only';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,12 +23,16 @@ export async function POST(request: NextRequest) {
 
     const results = await Promise.all(
       files.map(async (file) => {
-        const { fileUrl, presignedUrl } = await createPresignedUrl(
-          file.mimeType
-        );
+        const { presignedUrlList, key, uploadId } =
+          await createMultiPartsPresignedUrl({
+            mimeType: file.mimeType,
+            fileSize: file.fileSize,
+          });
+
         return {
-          fileUrl,
-          presignedUrl,
+          key,
+          uploadId,
+          presignedUrlList,
         };
       })
     );
@@ -36,8 +40,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       code: 200,
       msg: 'Presigned URLs generated successfully',
-      data: results,
-    } satisfies PresignedUrlResponse);
+      data: results[0],
+    } satisfies MultiPartsPresignedUrlResponse);
   } catch (error) {
     console.error('Error generating presigned URLs:', error);
     return NextResponse.json(

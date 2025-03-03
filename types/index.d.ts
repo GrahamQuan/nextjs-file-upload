@@ -9,13 +9,33 @@ export type PresignedUrlRequestBody = {
   slicedSize?: number;
 };
 
-export type ResponseRows<T = any> = {
+export type ResponseData<T = any> = {
   code: number;
   msg: string;
-  rows?: T[];
+  data?: T;
 };
 
-export type PresignedUrlResponse = ResponseRows<{
-  fileUrl: string;
-  presignedUrl: string;
+export type PresignedUrlResponse = ResponseData<
+  {
+    fileUrl: string;
+    presignedUrl: string;
+  }[]
+>;
+
+export type MultiPartsPresignedUrlResponse = ResponseData<{
+  key: string;
+  uploadId: string;
+  presignedUrlList: {
+    presignedUrl: string;
+    partNumber: number;
+  }[];
 }>;
+
+export type CompletedMultiPartUploadRequestBody = {
+  key: string;
+  uploadId: string;
+  parts: {
+    partNumber: number;
+    etag: string;
+  }[];
+};

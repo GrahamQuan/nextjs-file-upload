@@ -14,8 +14,8 @@ const links = [
     label: 'multi files upload',
   },
   {
-    href: '/multipart-file-upload',
-    label: 'multipart large file Upload',
+    href: '/multi-parts-file-upload',
+    label: 'multi parts large file Upload',
   },
 ];
 
