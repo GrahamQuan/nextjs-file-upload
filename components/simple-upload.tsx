@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Upload } from 'lucide-react';
+import { Download, Upload } from 'lucide-react';
 import { PresignedUrlResponse } from '@/types';
+import { fileDownload } from '@/lib/file-utils';
 
 export default function SimpleUpload() {
   const [file, setFile] = useState<File | null>(null);
@@ -40,7 +41,7 @@ export default function SimpleUpload() {
 
       const resJson = (await res.json()) as PresignedUrlResponse;
 
-      if (resJson.code !== 200) {
+      if (resJson.code !== 200 || !resJson.rows) {
         console.log('error msg', resJson);
         return;
       }
@@ -76,13 +77,22 @@ export default function SimpleUpload() {
     }
   };
 
+  const onDownload = () => {
+    if (previewUrl) {
+      fileDownload(previewUrl);
+    }
+  };
+
   return (
-    <div className='flex flex-col gap-5 w-full min-h-screen items-center'>
-      <h1>File Uploader and Downloader</h1>
-      <form onSubmit={handleSubmit} className='flex flex-col gap-3'>
+    <div className='flex flex-col gap-5 w-full min-h-screen items-center py-5'>
+      <form
+        onSubmit={handleSubmit}
+        className='flex flex-col gap-3 border border-sky-500 rounded-lg p-5'
+      >
+        <div>Upload form</div>
         <div className='flex gap-3'>
           <label
-            htmlFor='file'
+            htmlFor='file' // match with <input> id
             className='size-16 flex justify-center items-center rounded-lg bg-sky-500 hover:cursor-pointer'
           >
             <Upload className='size-8' />
@@ -90,7 +100,7 @@ export default function SimpleUpload() {
               type='file'
               name='file' // required for form submission
               id='file' // required for <label>
-              multiple={false}
+              multiple={false} // (1)true for multiple files (2)false for single file
               onChange={handleFileChange}
               className='hidden'
               accept='image/*' // only allow image files
@@ -115,13 +125,22 @@ export default function SimpleUpload() {
         </button>
       </form>
       <div>upload result:</div>
-      <div className='size-[200px] border rounded border-teal-500 flex justify-center items-center'>
+      <div className='relative size-[200px] border rounded border-teal-500 flex justify-center items-center'>
         {previewUrl && (
-          <img
-            src={previewUrl}
-            alt='preview'
-            className='object-cover max-w-full max-h-full'
-          />
+          <>
+            <button
+              type='button'
+              onClick={onDownload}
+              className='absolute top-2 right-2 size-6 rounded bg-white/20 backdrop-blur-md flex justify-center items-center'
+            >
+              <Download className='size-4' />
+            </button>
+            <img
+              src={previewUrl}
+              alt='preview'
+              className='object-cover max-w-full max-h-full'
+            />
+          </>
         )}
       </div>
     </div>
