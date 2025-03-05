@@ -35,7 +35,7 @@ export default function SubmitForm() {
     try {
       setIsUploading(true);
 
-      // 1. 获取分片上传的预签名URL
+      // 1. Get presigned URL for multipart upload
       const presignedUrlResponse = await fetch(
         '/api/multi-parts-presigned-url',
         {
@@ -57,19 +57,19 @@ export default function SubmitForm() {
       const presignedUrlJson = await presignedUrlResponse.json();
 
       if (presignedUrlJson.code !== 200 || !presignedUrlJson.data) {
-        console.error('获取预签名URL失败:', presignedUrlJson);
-        alert('获取上传URL失败');
+        console.error('Failed to get presigned URL:', presignedUrlJson);
+        alert('Failed to get upload URL');
         return;
       }
 
       const { key, uploadId, presignedUrlList } = presignedUrlJson.data;
 
-      // 2. 将文件分片
+      // 2. Slice the file
       const slicedFileList = sliceFileToMultipart(formData.image);
       const totalParts = presignedUrlList.length;
       let completedParts = 0;
 
-      // 3. 上传每个分片并跟踪进度
+      // 3. Upload each part and track progress
       const uploadPromises = presignedUrlList.map(
         async (
           el: { presignedUrl: string; partNumber: number },
@@ -79,18 +79,18 @@ export default function SubmitForm() {
             throw new Error('No presigned URL found for upload');
           }
 
-          // 使用XMLHttpRequest来监听上传进度
+          // Use XMLHttpRequest to monitor upload progress
           return new Promise<{ etag: string; partNumber: number }>(
             (resolve, reject) => {
               const xhr = new XMLHttpRequest();
 
-              // 监听上传进度
+              // Monitor upload progress
               xhr.upload.onprogress = (event) => {
                 if (event.lengthComputable) {
-                  // 计算当前分片的进度
+                  // Calculate the progress of the current part
                   const partProgress = event.loaded / event.total;
 
-                  // 更新总体进度 - 每个分片占总进度的比例是 1/totalParts
+                  // Update the overall progress - each part accounts for 1/totalParts of the total progress
                   const overallPartProgress =
                     idx / totalParts + partProgress / totalParts;
                   setUploadProgress(Math.floor(overallPartProgress * 100));
@@ -104,12 +104,12 @@ export default function SubmitForm() {
                 if (xhr.status >= 200 && xhr.status < 300) {
                   completedParts++;
 
-                  // 更新整体进度
+                  // Update the overall progress
                   setUploadProgress(
                     Math.floor((completedParts / totalParts) * 100)
                   );
 
-                  // 从响应头中获取ETag
+                  // Get ETag from the response header
                   const etag =
                     xhr.getResponseHeader('ETag') ||
                     xhr.getResponseHeader('etag') ||
@@ -117,7 +117,7 @@ export default function SubmitForm() {
                     '';
 
                   resolve({
-                    etag: etag.replace(/"/g, ''), // 移除引号
+                    etag: etag.replace(/"/g, ''), // Remove quotes
                     partNumber: el.partNumber,
                   });
                 } else {
@@ -135,10 +135,10 @@ export default function SubmitForm() {
         }
       );
 
-      // 等待所有分片上传完成
+      // Wait for all parts to be uploaded
       const uploadResults = await Promise.all(uploadPromises);
 
-      // 4. 通知服务器所有分片已上传
+      // 4. Notify the server that all parts have been uploaded
       const completeParams = {
         key,
         uploadId,
@@ -159,15 +159,15 @@ export default function SubmitForm() {
       const completeResult = await completeResponse.json();
 
       if (completeResult.code === 200) {
-        console.log('文件上传成功:', completeResult.fileUrl);
-        // 这里可以将文件URL保存到表单或显示给用户
+        console.log('File uploaded successfully:', completeResult.fileUrl);
+        // Here you can save the file URL to the form or display it to the user
       } else {
-        console.error('完成上传失败:', completeResult);
-        alert('上传失败');
+        console.error('Failed to complete upload:', completeResult);
+        alert('Upload failed');
       }
     } catch (error) {
-      console.error('上传过程出错:', error);
-      alert('上传过程中发生错误');
+      console.error('Error during upload process:', error);
+      alert('An error occurred during the upload process');
     } finally {
       setIsUploading(false);
     }
@@ -187,7 +187,7 @@ export default function SubmitForm() {
         {isUploading && (
           <div className='w-full'>
             <div className='text-sm mb-1 flex justify-between'>
-              <span>上传进度</span>
+              <span>Upload progress</span>
               <span>{uploadProgress}%</span>
             </div>
             <div className='w-full bg-gray-200 rounded-full h-2.5'>
@@ -204,7 +204,7 @@ export default function SubmitForm() {
           disabled={isUploading}
           className='min-w-[80px] flex justify-center items-center h-11 bg-sky-500 text-white rounded-full hover:opacity-60 disabled:opacity-50 disabled:cursor-not-allowed'
         >
-          {isUploading ? '上传中...' : '提交'}
+          {isUploading ? 'Uploading...' : 'Submit'}
         </button>
         <div className='h-px w-[300px] bg-sky-500' />
         <div className='text-teal-500'>success result:</div>
