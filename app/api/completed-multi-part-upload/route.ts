@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CompleteMultipartUploadCommand } from '@aws-sdk/client-s3';
 import BucketClient from '@/lib/server-only/bucket-client';
-import { CompletedMultiPartUploadRequestBody } from '@/types';
+import {
+  CompletedMultiPartUploadRequestBody,
+  CompletedMultiPartUploadResponse,
+} from '@/types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,8 +54,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       code: 200,
       msg: 'Multipart upload completed successfully',
-      fileUrl,
-    });
+      data: {
+        fileUrl,
+      },
+    } satisfies CompletedMultiPartUploadResponse);
   } catch (error) {
     console.error('Error completing multipart upload:', error);
     return NextResponse.json(

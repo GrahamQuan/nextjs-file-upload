@@ -1,14 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, Upload } from 'lucide-react';
+import { Download, Loader2, Upload } from 'lucide-react';
 import { FileInfo, PresignedUrlResponse } from '@/types';
-import { fileDownload } from '@/lib/file-utils';
+import useFileDownload from '@/hooks/use-file-download';
 
 export default function MultiFilesUpload() {
   const [fileList, setFileList] = useState<FileList>();
   const [previewUrlList, setPreviewUrlList] = useState<string[]>();
   const [loading, setLoading] = useState(false);
+  const { isDownloading, fileDownload } = useFileDownload();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -123,10 +124,15 @@ export default function MultiFilesUpload() {
           >
             <button
               type='button'
+              disabled={isDownloading}
               onClick={() => onDownload(url)}
               className='absolute top-2 right-2 size-6 rounded bg-white/20 backdrop-blur-md flex justify-center items-center'
             >
-              <Download className='size-4' />
+              {isDownloading ? (
+                <Loader2 className='size-4 animate-spin' />
+              ) : (
+                <Download className='size-4' />
+              )}
             </button>
             <img
               src={url}

@@ -1,17 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, Upload } from 'lucide-react';
+import { Download, Loader2, Upload } from 'lucide-react';
 import {
   CompletedMultiPartUploadRequestBody,
+  CompletedMultiPartUploadResponse,
   MultiPartsPresignedUrlResponse,
 } from '@/types';
-import { fileDownload, sliceFileToMultipart } from '@/lib/file-utils';
+import { sliceFileToMultipart } from '@/lib/file-utils';
+import useFileDownload from '@/hooks/use-file-download';
 
 export default function MultipartsLargeFileUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { isDownloading, fileDownload } = useFileDownload();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -113,11 +116,10 @@ export default function MultipartsLargeFileUpload() {
         body: JSON.stringify(params),
       });
 
-      const completedJson = (await completedRes.json()) as {
-        fileUrl: string;
-      };
+      const completedJson =
+        (await completedRes.json()) as CompletedMultiPartUploadResponse;
 
-      setPreviewUrl(completedJson.fileUrl);
+      setPreviewUrl(completedJson.data?.fileUrl || '');
     } catch (error: any) {
       console.error(error);
       console.log(error.message);
@@ -186,10 +188,15 @@ export default function MultipartsLargeFileUpload() {
           <>
             <button
               type='button'
+              disabled={isDownloading}
               onClick={onDownload}
               className='absolute top-2 right-2 size-6 rounded bg-white/20 backdrop-blur-md flex justify-center items-center'
             >
-              <Download className='size-4' />
+              {isDownloading ? (
+                <Loader2 className='size-4 animate-spin' />
+              ) : (
+                <Download className='size-4' />
+              )}
             </button>
             <img
               src={previewUrl}

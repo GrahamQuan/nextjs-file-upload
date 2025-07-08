@@ -13,9 +13,9 @@ const FormSchema = z.object({
   image: z
     .instanceof(File)
     .refine((file) => file.size >= 0)
-    .refine((file) => file.type.startsWith('image/')),
-  // .optional() // this line and below line make file type optional
-  // .or(z.any()),
+    .refine((file) => file.type.startsWith('image/'))
+    .optional() // this line and below line make file type optional
+    .or(z.any()),
 });
 
 export default function SubmitForm() {

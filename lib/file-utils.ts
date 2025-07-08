@@ -31,27 +31,3 @@ export function sliceFileToMultipart(
 export function getFileNameFromUrl(url: string) {
   return url.split('/').pop() || '';
 }
-
-export async function fileDownload(url: string) {
-  try {
-    // add timestamp to url to avoid browser cache
-    const response = await fetch(`${url}?t=${Date.now()}`);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const blob = await response.blob();
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = getFileNameFromUrl(url);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    URL.revokeObjectURL(link.href);
-  } catch (error) {
-    console.error('download file error:', error);
-    throw error;
-  }
-}
