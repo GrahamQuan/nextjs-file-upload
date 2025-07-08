@@ -8,7 +8,8 @@ import {
   createDateFolderPath,
   getFileExtensionByMimeType,
 } from '../file-utils';
-import { nanoid } from 'nanoid';
+// import { nanoid } from 'nanoid';
+import { v7 as uuidv7 } from 'uuid';
 
 /**
  * Creates a presigned URL for a multipart upload.
@@ -30,7 +31,7 @@ export default async function createMultiPartsPresignedUrl({
 }) {
   const bucketName = process.env.BUCKET_NAME || '';
   // key be like: 2025/03/01/1234567890.png
-  const key = `${createDateFolderPath()}/${nanoid()}.${getFileExtensionByMimeType(
+  const key = `${createDateFolderPath()}/${uuidv7()}.${getFileExtensionByMimeType(
     mimeType
   )}`;
 

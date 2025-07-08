@@ -1,5 +1,5 @@
 import { PutObjectCommand } from '@aws-sdk/client-s3';
-import { nanoid } from 'nanoid';
+import { v7 as uuidv7 } from 'uuid';
 import BucketClient from './bucket-client';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import {
@@ -11,7 +11,7 @@ export default async function createPresignedUrl(
   mimeType: string
 ): Promise<{ fileUrl: string; presignedUrl: string }> {
   // key be like: 2025/03/01/1234567890.png
-  const key = `${createDateFolderPath()}/${nanoid()}.${getFileExtensionByMimeType(
+  const key = `${createDateFolderPath()}/${uuidv7()}.${getFileExtensionByMimeType(
     mimeType
   )}`;
 
